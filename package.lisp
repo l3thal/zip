@@ -4,7 +4,11 @@
   (:use :cl :trivial-gray-streams)
   (:export #:zipfile                    ;reading ZIP files
 	   #:open-zipfile
+           #:open-zipfile-stream
+           #:make-zip-writer
 	   #:close-zipfile
+           #:close-zipfile-writer
+           #:zipfile-stream
 	   #:with-zipfile
 	   #:zipfile-entries
 	   #:get-zipfile-entry

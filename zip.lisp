@@ -734,3 +734,34 @@
 		   s
 		   :file-write-date (zipfile-entry-date entry)
 		   :file-mode (zipfile-entry-mode entry))))))))))
+
+(defun open-zipfile-stream (in)
+  (let ((*force-utf-8* t)
+        (s (flex:make-in-memory-input-stream in)))
+    (seek-to-end-header-stream s (length in))
+    (let ((end (make-end-header s))
+          (entries (make-hash-table :test #'equal)))
+      (file-position s (end/central-directory-offset end))
+      (dotimes (x (end/total-files end))
+        (let ((entry (read-entry-object s)))
+          (setf (gethash (zipfile-entry-name entry) entries) entry)))
+      (make-zipfile :stream s
+                    :entries entries))))
+
+(defun make-zip-writer (stream)
+  (let ((c (cons nil nil)))
+    (make-zipwriter :stream stream
+                    :compressor (make-instance 'salza2:deflate-compressor)
+                    :head c
+                    :tail c)))
+
+(defun seek-to-end-header-stream (s length)
+  (let* ((len (+ 65536 +end-header-length+))
+         (guess (max 0 (- length len))))
+    (file-position s guess)
+    (let ((v (make-byte-array (min length len))))
+      (read-sequence v s)
+      (let ((n (search #(80 75 5 6) v :from-end t)))
+        (unless n
+          (error "end of central directory header not found"))
+        (file-position s (+ guess n))))))
